@@ -1,17 +1,26 @@
+import pandas as pd
 from anndata import AnnData
 
 
-def basic_tool(adata: AnnData) -> int:
-    """Run a tool on the AnnData object.
+def aggregate_neighborhood(adata: AnnData, sample_key: str, annotation_key: str) -> pd.DataFrame:
+    """
+    Aggregate spatial neighborhood graph taking into account neighbors
+
+    For each pair of cell-types (niches) count the number of edges in the spatial neighborhood graph connecting
+    these two cell-types (niches) in each sample. Normalize the edge count to sum to 1 for each sample.
+    """
+    pass
+
+
+def aggregate_graph(
+    adata, *, sample_key: str, annotation_key: str, metric: str = "shannon", aggregate_by: str = "mean"
+) -> pd.DataFrame:
+    """
+    Compute a metric on every node of the neighborhood graph. Then aggregate this metric by a group (e.g. cell-type).
 
     Parameters
     ----------
-    adata
-        The AnnData object to preprocess.
-
-    Returns
-    -------
-    Some integer value.
+    metric
+        possible metrics are shannon entropy, count (-> get percentage of niches/cell-types), ... (?)
     """
-    print("Implement a tool to run on the AnnData object.")
-    return 0
+    pass
