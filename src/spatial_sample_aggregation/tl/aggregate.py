@@ -2,7 +2,7 @@ import pandas as pd
 from anndata import AnnData
 
 
-def aggregate_neighborhood(
+def aggregate_by_edge(
     adata: AnnData, sample_key: str, annotation_key: str, use_edge_weight: bool = False
 ) -> pd.DataFrame:
     """
@@ -14,7 +14,7 @@ def aggregate_neighborhood(
     pass
 
 
-def aggregate_graph(
+def aggregate_by_node(
     adata, *, sample_key: str, annotation_key: str, metric: str = "shannon", aggregate_by: str = "mean"
 ) -> pd.DataFrame:
     """
