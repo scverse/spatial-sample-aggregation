@@ -26,6 +26,7 @@ dependencies = [
   "anndata",
   # for debug logging (referenced from the issue template)
   "session-info",
+  "squidpy>=1.6.5",
 ]
 optional-dependencies.dev = [
   "pre-commit",
