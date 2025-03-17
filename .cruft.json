@@ -1,0 +1,30 @@
+{
+    "template": "https://github.com/scverse/cookiecutter-scverse",
+    "commit": "bf251d5f43a2d1da64425a0387c23835ca232979",
+    "checkout": null,
+    "context": {
+        "cookiecutter": {
+            "project_name": "spatial-sample-aggregation",
+            "package_name": "spatial_sample_aggregation",
+            "project_description": "Aggregate spatial slides into sample-level statistyics",
+            "author_full_name": "Gregor Sturm",
+            "author_email": "gregor.sturm@scverse.org",
+            "github_user": "scverse",
+            "github_repo": "spatial-sample-aggregation",
+            "license": "BSD 3-Clause License",
+            "ide_integration": true,
+            "_copy_without_render": [
+                ".github/workflows/build.yaml",
+                ".github/workflows/test.yaml",
+                "docs/_templates/autosummary/**.rst"
+            ],
+            "_render_devdocs": false,
+            "_jinja2_env_vars": {
+                "lstrip_blocks": true,
+                "trim_blocks": true
+            },
+            "_template": "https://github.com/scverse/cookiecutter-scverse"
+        }
+    },
+    "directory": null
+}
