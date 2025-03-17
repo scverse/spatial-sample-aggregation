@@ -2,7 +2,9 @@ import pandas as pd
 from anndata import AnnData
 
 
-def aggregate_neighborhood(adata: AnnData, sample_key: str, annotation_key: str) -> pd.DataFrame:
+def aggregate_neighborhood(
+    adata: AnnData, sample_key: str, annotation_key: str, use_edge_weight: bool = False
+) -> pd.DataFrame:
     """
     Aggregate spatial neighborhood graph taking into account neighbors
 
