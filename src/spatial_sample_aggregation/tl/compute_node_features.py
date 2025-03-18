@@ -52,7 +52,7 @@ def get_neighbor_counts(adata, n_hops=1, phenotype_col="celllineage", graph_key=
     return neighbor_counts
 
 
-def compute_node_feature(adata: AnnData, metric: str, connectivity_key: str, **kwargs) -> pd.Series:
+def compute_node_feature(adata: AnnData, metric: str, connectivity_key: str, **kwargs) -> np.ndarray:
     """
     Compute a node-level feature based on the selected metric.
 
@@ -65,7 +65,7 @@ def compute_node_feature(adata: AnnData, metric: str, connectivity_key: str, **k
 
     Returns
     -------
-    - pd.Series: Node-level feature values indexed by cell ID
+    - np.ndarray: Node-level feature values indexed by cell ID
     """
     node_feature_functions = {
         "shannon": compute_shannon_diversity,
@@ -79,14 +79,14 @@ def compute_node_feature(adata: AnnData, metric: str, connectivity_key: str, **k
     return node_feature_functions[metric](adata, graph_key=connectivity_key, **kwargs)
 
 
-def calculate_degree(adata: AnnData, graph_key: str = "radius_cut_connectivities", **kwargs) -> pd.Series:
+def calculate_degree(adata: AnnData, graph_key: str = "radius_cut_connectivities", **kwargs) -> np.ndarray:
     """Compute the degree of each node."""
-    return adata.obsp[graph_key].sum(axis=1)
+    return np.ndarray(adata.obsp[graph_key].sum(axis=1))
 
 
-def calculate_mean_distance(adata: AnnData, graph_key: str = "delaunay_distances", **kwargs) -> pd.Series:
+def calculate_mean_distance(adata: AnnData, graph_key: str = "delaunay_distances", **kwargs) -> np.ndarray:
     """Compute the mean distance to neighbors."""
-    return np.nanmean(adata.obsp[graph_key].toarray(), axis=1)
+    return np.ndarray(np.nanmean(adata.obsp[graph_key].toarray(), axis=1))
 
 
 def compute_shannon_diversity(
@@ -95,7 +95,7 @@ def compute_shannon_diversity(
     n_hops: int = 1,
     phenotype_col: str = "celllineage",
     **kwargs,
-) -> pd.Series:
+) -> np.ndarray:
     """
     Compute Shannon diversity index for each node based on neighbor counts.
 
@@ -109,7 +109,7 @@ def compute_shannon_diversity(
 
     Returns
     -------
-    - pd.Series: Shannon diversity values indexed by cell ID
+    - np.ndarray: Shannon diversity values indexed by cell ID
     """
     # Compute neighbor counts directly
     neighbor_counts = get_neighbor_counts(adata, phenotype_col=phenotype_col, graph_key=graph_key, n_hops=n_hops)
@@ -120,7 +120,7 @@ def compute_shannon_diversity(
     # Compute Shannon diversity (entropy), ignoring zero probabilities
     shannon_diversity = np.apply_along_axis(lambda p: entropy(p[p > 0], base=2), 1, probabilities.values)
 
-    return shannon_diversity
+    return np.ndarray(shannon_diversity)
 
 
 def aggregate_by_group(
