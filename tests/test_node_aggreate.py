@@ -61,10 +61,6 @@ def sample_adata():
 
     return adata
 
-
-
-
-
 @pytest.mark.parametrize("metric", ["shannon", "degree", "mean_distance"])
 def test_aggregate_by_node(sample_adata, metric):
     """Test that aggregate_by_node correctly computes and stores metrics."""
@@ -88,7 +84,6 @@ def test_aggregate_by_node(sample_adata, metric):
 
     # Ensure aggregated values are not empty
     assert not sample_adata.obs[added_key].isna().all(), f"All {added_key} values are NaN."
-
 
 
 def test_invalid_metric(sample_adata):
