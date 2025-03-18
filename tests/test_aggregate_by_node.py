@@ -54,7 +54,7 @@ def test_get_neighbor_counts(sample_adata):
 @pytest.mark.parametrize("metric", ["shannon", "degree", "mean_distance"])
 def test_aggregate_by_node(sample_adata, metric):
     """Test that aggregate_by_node correctly computes and stores metrics."""
-    added_key = f"{metric}_aggregated"
+    key_added = f"{metric}_aggregated"
 
     aggregate_by_node(
         adata=sample_adata,
@@ -63,17 +63,17 @@ def test_aggregate_by_node(sample_adata, metric):
         metric=metric,
         aggregation="mean",
         connectivity_key="spatial_connectivities",
-        added_key=added_key,
+        key_added=key_added,
     )
-
+    
     # Check if the computed metric is stored in `adata.obs`
-    assert added_key in sample_adata.obs, f"{added_key} was not stored in obs."
+    assert key_added in sample_adata.obs, f"{key_added} was not stored in obs."
 
     # Check if the aggregated result is stored in `adata.uns`
-    assert added_key in sample_adata.uns, f"{added_key} was not stored in uns."
+    assert key_added in sample_adata.uns, f"{key_added} was not stored in uns."
 
     # Ensure aggregated values are not empty
-    assert not sample_adata.obs[added_key].isna().all(), f"All {added_key} values are NaN."
+    assert not sample_adata.obs[key_added].isna().all(), f"All {key_added} values are NaN."
 
 
 def test_invalid_metric(sample_adata):
