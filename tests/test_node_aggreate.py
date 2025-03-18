@@ -14,7 +14,7 @@ def test_aggregate_by_node(sample_adata, metric):
 
     aggregate_by_node(
         adata=sample_adata,
-        sample_key="sample_id",
+        library_key="sample_id",
         cluster_key="cell_type",
         metric=metric,
         aggregation="mean",
@@ -38,7 +38,7 @@ def test_invalid_metric(sample_adata):
     with pytest.raises(ValueError):
         aggregate_by_node(
             adata=sample_adata,
-            sample_key="sample_id",
+            library_key="sample_id",
             cluster_key="cell_type",
             metric="invalid_metric",
             aggregation="mean",
@@ -52,7 +52,7 @@ def test_missing_connectivity_key(sample_adata):
     with pytest.raises(KeyError):
         aggregate_by_node(
             adata=sample_adata,
-            sample_key="sample_id",
+            library_key="sample_id",
             cluster_key="cell_type",
             metric="shannon",
             aggregation="mean",
