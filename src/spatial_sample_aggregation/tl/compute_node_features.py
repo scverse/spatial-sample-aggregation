@@ -119,7 +119,7 @@ def aggregate_by_group(
     node_feature_key: str,
     cluster_key: str | None = None,
     aggregation: str = "mean",
-    added_key: str = "aggregated_features",
+    key_added: str = "aggregated_features",
 ) -> None:
     """
     Aggregate node-level features by a sample group and optionally by annotation.
@@ -129,9 +129,9 @@ def aggregate_by_group(
     - adata: AnnData object
     - sample_key: str, column in `adata.obs` indicating the sample group
     - node_feature_key: str, column in `adata.obs` containing the node-level feature to aggregate
-    - annotation_key: Optional[str], column in `adata.obs` for additional grouping (e.g., cell type)
-    - aggregation_function: str, aggregation method ('mean', 'median', 'sum', 'none')
-    - output_key: str, key under which results are stored in `adata.uns`
+    - cluster_key: Optional[str], column in `adata.obs` for additional grouping (e.g., cell type)
+    - aggregation: str, aggregation method ('mean', 'median', 'sum', None)
+    - key_added: str, key under which results are stored in `adata.uns`
 
     Returns
     -------
@@ -151,8 +151,10 @@ def aggregate_by_group(
         "mean": "mean",
         "median": "median",
         "sum": "sum",
-        "none": lambda x: x,  # No aggregation, keeps raw values
     }
+
+    if aggregation is None:
+        return
 
     if aggregation not in agg_methods:
         raise ValueError(f"Unsupported aggregation method: {aggregation}")
@@ -167,5 +169,5 @@ def aggregate_by_group(
     else:
         aggregated = adata.obs.groupby(sample_key)[node_feature_key].agg(agg_methods[aggregation])
 
-    # Store results in adata.uns
-    adata.uns[added_key] = aggregated
+    # TODO: adapt to squidpy save function
+    adata.uns[key_added] = aggregated

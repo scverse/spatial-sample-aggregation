@@ -4,7 +4,7 @@ import pytest
 import scipy
 from anndata import AnnData
 
-from spatial_sample_aggregation.tl import compute_node_feature
+from spatial_sample_aggregation.tl import compute_node_feature, aggregate_by_group
 
 
 @pytest.fixture
@@ -16,6 +16,7 @@ def adata():
             "cell_id": [f"cell_{i}" for i in range(20)],
             "cell_type": ["A", "B", "C", "A", "B", "C", "A", "B", "C", "A"] * 2,  # Repeating for two samples
             "sample_id": ["S1"] * 10 + ["S2"] * 10,  # First 10 cells in S1, next 10 in S2
+            "node_feature": np.random.rand(20)
         }
     ).set_index("cell_id")
 
@@ -87,3 +88,61 @@ def test_compute_node_feature(adata, metric):
 def test_compute_node_feature_invalid_metric(adata, invalid_metric):
     with pytest.raises(ValueError, match=f"Unsupported metric: {invalid_metric}"):
         compute_node_feature(adata, invalid_metric, connectivity_key="spatial_connectivities")
+
+@pytest.mark.parametrize("aggregation", ["mean", "median", "sum"])
+def test_aggregate_by_group(adata, aggregation):
+    aggregate_by_group(
+        adata,
+        sample_key="sample_id",
+        node_feature_key="node_feature",
+        aggregation=aggregation,
+        key_added="aggregated_features",
+    )
+    
+    # Check that the aggregated results are stored in `adata.uns`
+    assert "aggregated_features" in adata.uns, "Aggregated features not found in adata.uns."
+    
+    aggregated = adata.uns["aggregated_features"]
+    
+    # Check that aggregation returns a DataFrame
+    assert isinstance(aggregated, pd.Series) or isinstance(aggregated, pd.DataFrame), "Aggregation output should be Series or DataFrame."
+    
+    # Check that the aggregated index matches unique sample keys
+    assert set(aggregated.index) == set(adata.obs["sample_id"].unique()), "Aggregated index does not match sample keys."
+
+@pytest.mark.parametrize("invalid_aggregation", ["invalid_method", "average", "total"])
+def test_aggregate_by_group_invalid_aggregation(adata, invalid_aggregation):
+    with pytest.raises(ValueError, match=f"Unsupported aggregation method: {invalid_aggregation}"):
+        aggregate_by_group(
+            adata,
+            sample_key="sample_id",
+            node_feature_key="node_feature",
+            aggregation=invalid_aggregation,
+            key_added="aggregated_features",
+        )
+
+@pytest.mark.parametrize("missing_key", ["missing_sample", "missing_feature"])
+def test_aggregate_by_group_missing_keys(adata, missing_key):
+    sample_key = "sample_id" if missing_key != "missing_sample" else "non_existent_column"
+    node_feature_key = "node_feature" if missing_key != "missing_feature" else "non_existent_feature"
+    
+    with pytest.raises(ValueError, match=f"Column '.*' not found in adata.obs"):
+        aggregate_by_group(
+            adata,
+            sample_key=sample_key,
+            node_feature_key=node_feature_key,
+            aggregation="mean",
+            key_added="aggregated_features",
+        )
+
+def test_aggregate_by_group_none_aggregation(adata):
+    aggregate_by_group(
+        adata,
+        sample_key="sample_id",
+        node_feature_key="node_feature",
+        aggregation=None,
+        key_added="aggregated_features",
+    )
+    
+    # Check that nothing is written to `adata.uns`
+    assert "aggregated_features" not in adata.uns, "No aggregation should be written when aggregation=None."
