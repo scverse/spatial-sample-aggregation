@@ -65,7 +65,7 @@ def sample_adata():
 
 
 
-@pytest.mark.parametrize("metric", ["degree", "mean_distance"]) #["shannon", "degree", "mean_distance"])
+@pytest.mark.parametrize("metric", ["shannon", "degree", "mean_distance"])
 def test_aggregate_by_node(sample_adata, metric):
     """Test that aggregate_by_node correctly computes and stores metrics."""
     added_key = f"{metric}_aggregated"
