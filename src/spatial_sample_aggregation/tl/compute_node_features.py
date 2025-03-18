@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 from typing import Literal
 
+import scipy
 from anndata import AnnData
 from scipy.stats import entropy
 from squidpy._utils import NDArrayA
@@ -36,7 +37,7 @@ def get_neighbor_counts(adata, cluster_key="cell_type", connectivity_key="spatia
         raise RuntimeError(f"After removing NaNs in `adata.obs[{cluster_key!r}]`, none remain.")
    
     g = adata.obsp[connectivity_key]
-    import scipy
+    
     if isinstance(g, scipy.sparse.coo_matrix):
         g = g.tocsr()
     g = g[mask, :][:, mask]
