@@ -1,8 +1,9 @@
 import pandas as pd
 from anndata import AnnData
-from .compute_node_features import aggregate_by_group, compute_node_feature
 from squidpy._constants._pkg_constants import Key
 from squidpy.gr._utils import _assert_categorical_obs, _assert_connectivity_key
+
+from .compute_node_features import aggregate_by_group, compute_node_feature
 
 
 def aggregate_by_edge(
@@ -26,7 +27,6 @@ def aggregate_by_node(
     aggregation: str = "mean",  # TODO: new parameter --> check squidpy
     connectivity_key: str = "spatial_connectivities",  # TODO: new parameter
     added_key: str = None,
-    n_hops: int = 1,
     **kwargs,
 ) -> None:
     """
@@ -41,7 +41,6 @@ def aggregate_by_node(
     - aggregate_by: str, aggregation method ('mean', 'median', 'sum', 'none')
     - graph_key: str, adjacency matrix key
     - added_key: Optional[str], key under which aggregated results are stored in `adata.uns`. Defaults to `metric`.
-    - n_hops: int, number of hops for neighborhood metrics
     - kwargs: Additional parameters passed to metric computation functions.
 
     Returns
@@ -58,7 +57,7 @@ def aggregate_by_node(
 
     # Compute node-level feature
     node_features = compute_node_feature(
-        adata, metric, connectivity_key=connectivity_key, n_hops=n_hops, phenotype_col=cluster_key, **kwargs
+        adata, metric, connectivity_key=connectivity_key, phenotype_col=cluster_key, **kwargs
     )
 
     # TODO: adapt to squidpy gr_utils _save_data(adata, attr="obs", key=Key.obs.feature(feature_column), data=node_features)

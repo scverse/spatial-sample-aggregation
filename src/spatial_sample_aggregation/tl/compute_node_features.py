@@ -1,58 +1,50 @@
-import networkx as nx
 import numpy as np
 import pandas as pd
 from anndata import AnnData
 from scipy.stats import entropy
+from squidpy._utils import NDArrayA
 
 
-def get_n_hop_neighbors(G, cell_idx, n_hops):
-    """Find all nodes within n_hops from cell_idx using BFS."""
-    visited = set(cell_idx)  # Track visited nodes
-    current_level = {cell_idx}  # Start with the original cell
+# TODO: this should go into squidpy/gr/_nhood.py
+def _get_neighbor_counts(
+    data: NDArrayA,
+    indices: NDArrayA,
+    indptr: NDArrayA,
+    cats: NDArrayA,  # Array mapping cell indices to their types
+    output: NDArrayA,  # Shape: (n_cells, n_celltypes)
+) -> NDArrayA:
+    indices_list = np.split(indices, indptr[1:-1])
+    data_list = np.split(data, indptr[1:-1])
+    for i in range(len(data_list)):  # Iterate over cells
+        cur_row = i  # Each row corresponds to a cell
+        cur_indices = indices_list[i]
+        cur_data = data_list[i]
+        for j, val in zip(cur_indices, cur_data, strict=False):
+            cur_col = cats[j]  # Column corresponds to cell type
+            output[cur_row, cur_col] += val
+    return output
 
-    for _ in range(n_hops):
-        next_level = set()  # Store neighbors at the next hop level
-        for node in current_level:
-            next_level.update(set(G.neighbors(node)) - visited)  # Avoid revisiting
-        if not next_level:
-            break  # No more neighbors to explore
-        visited.update(next_level)  # Mark them as visited
-        current_level = next_level  # Move to the next hop
 
-    visited.remove(cell_idx)  # Exclude the original node
-    return visited
-
-
-def get_neighbor_counts(adata, n_hops=1, phenotype_col="celllineage", graph_key="generic_connectivities"):
+def get_neighbor_counts(adata, cluster_key="cell_type", connectivity_key="spatial_connectivities"):
     """Computes the number of each cell type in one-hop neighbors and stores it in adata.obsm['neighbor_counts']."""
-    # Get unique cell types
-    cell_types = adata.obs[phenotype_col].unique()
+    cats = adata.obs[cluster_key]
+    mask = ~pd.isnull(cats).values
+    cats = cats.loc[mask]
+    if not len(cats):
+        raise RuntimeError(f"After removing NaNs in `adata.obs[{cluster_key!r}]`, none remain.")
 
-    # Create an empty dataframe
-    neighbor_counts = pd.DataFrame(
-        np.zeros((adata.n_obs, len(cell_types)), dtype=int), index=adata.obs_names, columns=cell_types
-    )
+    g = adata.obsp[connectivity_key]
+    g = g[mask, :][:, mask]
+    n_cats = len(cats.cat.categories)
 
-    adjacency_matrix = adata.obsp[graph_key]
+    g_data = np.broadcast_to(1, shape=len(g.data))
+    dtype = int if pd.api.types.is_bool_dtype(g.dtype) or pd.api.types.is_integer_dtype(g.dtype) else float
+    output: NDArrayA = np.zeros((n_cats, n_cats), dtype=dtype)
 
-    # Convert to NetworkX graph
-    G = nx.from_scipy_sparse_array(adjacency_matrix)
-
-    # Iterate over each cell
-    for cell_idx in range(adata.n_obs):
-        neighbors = get_n_hop_neighbors(G, cell_idx, n_hops)
-
-        # Get their cell types
-        neighbor_types = adata.obs.iloc[list(neighbors)][phenotype_col]
-
-        # Count occurrences
-        neighbor_counts.iloc[cell_idx] = neighbor_types.value_counts().reindex(cell_types, fill_value=0)
-
-    # Store in AnnData object
-    return neighbor_counts
+    return _get_neighbor_counts(g_data, g.indices, g.indptr, cats.cat.codes.to_numpy(), output)
 
 
-def compute_node_feature(adata: AnnData, metric: str, connectivity_key: str, **kwargs) -> np.ndarray:
+def compute_node_feature(adata: AnnData, metric: str, connectivity_key: str, **kwargs) -> NDArrayA:
     """
     Compute a node-level feature based on the selected metric.
 
@@ -60,7 +52,7 @@ def compute_node_feature(adata: AnnData, metric: str, connectivity_key: str, **k
     ----------
     - adata: AnnData object
     - metric: str, the metric to compute ('shannon', 'degree', 'mean_distance')
-    - graph_key: str, the key for the adjacency matrix in `adata.obsp`
+    - connectivity_key: str, the key for the adjacency matrix in `adata.obsp`
     - kwargs: additional parameters for specific computations (e.g., `n_hops` for Shannon)
 
     Returns
@@ -76,35 +68,33 @@ def compute_node_feature(adata: AnnData, metric: str, connectivity_key: str, **k
     if metric not in node_feature_functions:
         raise ValueError(f"Unsupported metric: {metric}")
 
-    return node_feature_functions[metric](adata, graph_key=connectivity_key, **kwargs)
+    return node_feature_functions[metric](adata, connectivity_key=connectivity_key, **kwargs).reshape(-1, 1)
 
 
-def calculate_degree(adata: AnnData, graph_key: str = "radius_cut_connectivities", **kwargs) -> np.ndarray:
+def calculate_degree(adata: AnnData, connectivity_key: str = "radius_cut_connectivities", **kwargs) -> NDArrayA:
     """Compute the degree of each node."""
-    return np.ndarray(adata.obsp[graph_key].sum(axis=1))
+    return adata.obsp[connectivity_key].sum(axis=1)
 
 
-def calculate_mean_distance(adata: AnnData, graph_key: str = "delaunay_distances", **kwargs) -> np.ndarray:
+def calculate_mean_distance(adata: AnnData, connectivity_key: str = "delaunay_distances", **kwargs) -> NDArrayA:
     """Compute the mean distance to neighbors."""
-    return np.ndarray(np.nanmean(adata.obsp[graph_key].toarray(), axis=1))
+    return np.nanmean(adata.obsp[connectivity_key].toarray(), axis=1)
 
 
 def compute_shannon_diversity(
     adata: AnnData,
-    graph_key: str = "generic_connectivities",
-    n_hops: int = 1,
-    phenotype_col: str = "celllineage",
+    connectivity_key: str = "spatial_connectivities",
+    cluster_key: str = "cell_type",
     **kwargs,
-) -> np.ndarray:
+) -> NDArrayA:
     """
     Compute Shannon diversity index for each node based on neighbor counts.
 
     Parameters
     ----------
     - adata: AnnData object
-    - graph_key: str, key in adata.obsp corresponding to the adjacency matrix
-    - n_hops: int, number of hops to consider for neighbors
-    - phenotype_col: str, column in adata.obs that contains categorical annotations (e.g., cell type)
+    - connectivity_key: str, key in adata.obsp corresponding to the adjacency matrix
+    - cluster_key: str, column in adata.obs that contains categorical annotations (e.g., cell type)
     - kwargs: additional arguments (not used here but included for interface consistency)
 
     Returns
@@ -112,7 +102,7 @@ def compute_shannon_diversity(
     - np.ndarray: Shannon diversity values indexed by cell ID
     """
     # Compute neighbor counts directly
-    neighbor_counts = get_neighbor_counts(adata, phenotype_col=phenotype_col, graph_key=graph_key, n_hops=n_hops)
+    neighbor_counts = get_neighbor_counts(adata, cluster_key=cluster_key, connectivity_key=connectivity_key)
 
     # Normalize to probabilities
     probabilities = neighbor_counts / neighbor_counts.sum(axis=1, keepdims=True)
@@ -127,7 +117,7 @@ def aggregate_by_group(
     adata: AnnData,
     sample_key: str,
     node_feature_key: str,
-    cluster_key: str = None,
+    cluster_key: str | None = None,
     aggregation: str = "mean",
     added_key: str = "aggregated_features",
 ) -> None:
