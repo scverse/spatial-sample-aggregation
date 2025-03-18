@@ -63,20 +63,21 @@ def adata():
 
 
 @pytest.mark.parametrize(
-    "metric, expected_shape",
+    "metric",
     [
-        ("degree", (20, 1)),
-        ("mean_distance", (20, 1)),
+        ("degree"),
+        ("mean_distance"),
+        ("shannon")
     ],
 )
-def test_compute_node_feature(adata, metric, expected_shape):
+def test_compute_node_feature(adata, metric):
     result = compute_node_feature(adata, metric, connectivity_key="spatial_connectivities")
 
     # Check type
     assert isinstance(result, np.ndarray), "Result should be a numpy ndarray."
 
     # Check shape
-    assert result.shape == expected_shape, f"Expected shape {expected_shape}, but got {result.shape}."
+    assert result.shape == (adata.n_obs,1), f"Expected shape {(adata.n_obs,1)}, but got {result.shape}."
 
     # Check no NaNs in degree and mean_distance (shannon may have NaNs for isolated nodes)
     if metric in ["degree", "mean_distance"]:

@@ -5,7 +5,7 @@ requires = [ "hatchling" ]
 [project]
 name = "spatial-sample-aggregation"
 version = "0.0.1"
-description = "Aggregate spatial slides into sample-level statistyics"
+description = "Aggregate spatial slides into sample-level statistics"
 readme = "README.md"
 license = { file = "LICENSE" }
 maintainers = [
