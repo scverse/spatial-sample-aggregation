@@ -43,7 +43,7 @@ def _get_neighbor_counts(
     return output
 
 
-def get_neighbor_counts(adata, n_hops=1, cluster_key="celltype", connectivity_key="spatial_connectivities"):
+def get_neighbor_counts(adata, n_hops=1, cluster_key="cell_type", connectivity_key="spatial_connectivities"):
     """Computes the number of each cell type in one-hop neighbors and stores it in adata.obsm['neighbor_counts']."""
     cats = adata.obs[cluster_key]
     mask = ~pd.isnull(cats).values
@@ -70,7 +70,7 @@ def compute_node_feature(adata: AnnData, metric: str, connectivity_key: str, **k
     ----------
     - adata: AnnData object
     - metric: str, the metric to compute ('shannon', 'degree', 'mean_distance')
-    - graph_key: str, the key for the adjacency matrix in `adata.obsp`
+    - connectivity_key: str, the key for the adjacency matrix in `adata.obsp`
     - kwargs: additional parameters for specific computations (e.g., `n_hops` for Shannon)
 
     Returns
@@ -86,35 +86,35 @@ def compute_node_feature(adata: AnnData, metric: str, connectivity_key: str, **k
     if metric not in node_feature_functions:
         raise ValueError(f"Unsupported metric: {metric}")
 
-    return node_feature_functions[metric](adata, graph_key=connectivity_key, **kwargs)
+    return node_feature_functions[metric](adata, connectivity_key=connectivity_key, **kwargs)
 
 
-def calculate_degree(adata: AnnData, graph_key: str = "radius_cut_connectivities", **kwargs) -> pd.Series:
+def calculate_degree(adata: AnnData, connectivity_key: str = "radius_cut_connectivities", **kwargs) -> pd.Series:
     """Compute the degree of each node."""
-    return adata.obsp[graph_key].sum(axis=1)
+    return adata.obsp[connectivity_key].sum(axis=1)
 
 
-def calculate_mean_distance(adata: AnnData, graph_key: str = "delaunay_distances", **kwargs) -> pd.Series:
+def calculate_mean_distance(adata: AnnData, connectivity_key: str = "delaunay_distances", **kwargs) -> pd.Series:
     """Compute the mean distance to neighbors."""
-    return np.nanmean(adata.obsp[graph_key].toarray(), axis=1)
+    return np.nanmean(adata.obsp[connectivity_key].toarray(), axis=1)
 
 
 def compute_shannon_diversity(
     adata: AnnData,
-    graph_key: str = "generic_connectivities",
+    connectivity_key: str = "spatial_connectivities",
     n_hops: int = 1,
-    phenotype_col: str = "celllineage",
+    cluster_key: str = "cell_type",
     **kwargs,
-) -> pd.Series:
+) -> NDArrayA:
     """
     Compute Shannon diversity index for each node based on neighbor counts.
 
     Parameters
     ----------
     - adata: AnnData object
-    - graph_key: str, key in adata.obsp corresponding to the adjacency matrix
+    - connectivity_key: str, key in adata.obsp corresponding to the adjacency matrix
     - n_hops: int, number of hops to consider for neighbors
-    - phenotype_col: str, column in adata.obs that contains categorical annotations (e.g., cell type)
+    - cluster_key: str, column in adata.obs that contains categorical annotations (e.g., cell type)
     - kwargs: additional arguments (not used here but included for interface consistency)
 
     Returns
@@ -122,7 +122,7 @@ def compute_shannon_diversity(
     - pd.Series: Shannon diversity values indexed by cell ID
     """
     # Compute neighbor counts directly
-    neighbor_counts = get_neighbor_counts(adata, phenotype_col=phenotype_col, graph_key=graph_key, n_hops=n_hops)
+    neighbor_counts = get_neighbor_counts(adata, cluster_key=cluster_key, connectivity_key=connectivity_key, n_hops=n_hops)
 
     # Normalize to probabilities
     probabilities = neighbor_counts / neighbor_counts.sum(axis=1, keepdims=True)
@@ -137,7 +137,7 @@ def aggregate_by_group(
     adata: AnnData,
     sample_key: str,
     node_feature_key: str,
-    cluster_key: str = None,
+    cluster_key: str | None = None,
     aggregation: str = "mean",
     added_key: str = "aggregated_features",
 ) -> None:
