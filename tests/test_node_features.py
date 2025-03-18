@@ -1,75 +1,13 @@
 import numpy as np
 import pandas as pd
 import pytest
-import scipy
-from anndata import AnnData
 
-from spatial_sample_aggregation.tl import compute_node_feature, aggregate_by_group
-
-
-@pytest.fixture
-def adata():
-    """Creates a small AnnData object for testing."""
-    # Create observation dataframe with 2 samples and 10 cells each (total 20 cells)
-    obs = pd.DataFrame(
-        {
-            "cell_id": [f"cell_{i}" for i in range(20)],
-            "cell_type": ["A", "B", "C", "A", "B", "C", "A", "B", "C", "A"] * 2,  # Repeating for two samples
-            "sample_id": ["S1"] * 10 + ["S2"] * 10,  # First 10 cells in S1, next 10 in S2
-            "node_feature": np.random.rand(20)
-        }
-    ).set_index("cell_id")
-
-    # Create an adjacency matrix with 2 separate connected components (one per sample)
-    adjacency_matrix = scipy.sparse.block_diag(
-        [
-            scipy.sparse.csr_matrix(
-                [
-                    [0, 1, 0, 1, 0, 0, 0, 0, 0, 1],  # cell_0 connects to cell_1, cell_3, cell_9
-                    [1, 0, 1, 0, 1, 0, 0, 0, 0, 0],  # cell_1 connects to cell_0, cell_2, cell_4
-                    [0, 1, 0, 1, 0, 1, 0, 0, 0, 0],  # cell_2 connects to cell_1, cell_3, cell_5
-                    [1, 0, 1, 0, 0, 0, 1, 0, 0, 0],  # cell_3 connects to cell_0, cell_2, cell_6
-                    [0, 1, 0, 0, 0, 1, 0, 1, 0, 0],  # cell_4 connects to cell_1, cell_5, cell_7
-                    [0, 0, 1, 0, 1, 0, 1, 0, 1, 0],  # cell_5 connects to cell_2, cell_4, cell_6, cell_8
-                    [0, 0, 0, 1, 0, 1, 0, 1, 0, 0],  # cell_6 connects to cell_3, cell_5, cell_7
-                    [0, 0, 0, 0, 1, 0, 1, 0, 1, 0],  # cell_7 connects to cell_4, cell_6, cell_8
-                    [0, 0, 0, 0, 0, 1, 0, 1, 0, 1],  # cell_8 connects to cell_5, cell_7, cell_9
-                    [1, 0, 0, 0, 0, 0, 0, 0, 1, 0],  # cell_9 connects to cell_0, cell_8
-                ]
-            ),
-            scipy.sparse.csr_matrix(
-                [
-                    [0, 1, 0, 1, 0, 0, 0, 0, 0, 1],  # cell_10 connects to cell_11, cell_13, cell_19
-                    [1, 0, 1, 0, 1, 0, 0, 0, 0, 0],  # cell_11 connects to cell_10, cell_12, cell_14
-                    [0, 1, 0, 1, 0, 1, 0, 0, 0, 0],  # cell_12 connects to cell_11, cell_13, cell_15
-                    [1, 0, 1, 0, 0, 0, 1, 0, 0, 0],  # cell_13 connects to cell_10, cell_12, cell_16
-                    [0, 1, 0, 0, 0, 1, 0, 1, 0, 0],  # cell_14 connects to cell_11, cell_15, cell_17
-                    [0, 0, 1, 0, 1, 0, 1, 0, 1, 0],  # cell_15 connects to cell_12, cell_14, cell_16, cell_18
-                    [0, 0, 0, 1, 0, 1, 0, 1, 0, 0],  # cell_16 connects to cell_13, cell_15, cell_17
-                    [0, 0, 0, 0, 1, 0, 1, 0, 1, 0],  # cell_17 connects to cell_14, cell_16, cell_18
-                    [0, 0, 0, 0, 0, 1, 0, 1, 0, 1],  # cell_18 connects to cell_15, cell_17, cell_19
-                    [1, 0, 0, 0, 0, 0, 0, 0, 1, 0],  # cell_19 connects to cell_10, cell_18
-                ]
-            ),
-        ]
-    )
-
-    # Create AnnData object
-    adata = AnnData(obs=obs)
-    adata.obs["sample_id"] = adata.obs["sample_id"].astype("category")
-    adata.obsm["spatial"] = np.random.rand(20, 2)
-    adata.obsp["spatial_connectivities"] = adjacency_matrix
-
-    return adata
+from spatial_sample_aggregation.tl import aggregate_by_group, compute_node_feature, get_neighbor_counts
 
 
 @pytest.mark.parametrize(
     "metric",
-    [
-        ("degree"),
-        ("mean_distance"),
-        ("shannon")
-    ],
+    [("degree"), ("mean_distance"), ("shannon")],
 )
 def test_compute_node_feature(sample_adata, metric):
     result = compute_node_feature(sample_adata, metric, connectivity_key="spatial_connectivities")
@@ -78,7 +16,7 @@ def test_compute_node_feature(sample_adata, metric):
     assert isinstance(result, np.ndarray), "Result should be a numpy ndarray."
 
     # Check shape
-    assert result.shape == (sample_adata.n_obs,1), f"Expected shape {(sample_adata.n_obs,1)}, but got {result.shape}."
+    assert result.shape == (sample_adata.n_obs, 1), f"Expected shape {(sample_adata.n_obs, 1)}, but got {result.shape}."
 
     # Check no NaNs in degree and mean_distance (shannon may have NaNs for isolated nodes)
     if metric in ["degree", "mean_distance"]:
@@ -90,60 +28,75 @@ def test_compute_node_feature_invalid_metric(sample_adata, invalid_metric):
     with pytest.raises(ValueError, match=f"Unsupported metric: {invalid_metric}"):
         compute_node_feature(sample_adata, invalid_metric, connectivity_key="spatial_connectivities")
 
+
 @pytest.mark.parametrize("aggregation", ["mean", "median", "sum"])
 def test_aggregate_by_group(sample_adata, aggregation):
     aggregate_by_group(
         sample_adata,
-        sample_key="sample_id",
+        library_key="sample_id",
         node_feature_key="node_feature",
         aggregation=aggregation,
         key_added="aggregated_features",
     )
-    
+
     # Check that the aggregated results are stored in `adata.uns`
     assert "aggregated_features" in sample_adata.uns, "Aggregated features not found in adata.uns."
-    
+
     aggregated = sample_adata.uns["aggregated_features"]
-    
+
     # Check that aggregation returns a DataFrame
-    assert isinstance(aggregated, pd.Series) or isinstance(aggregated, pd.DataFrame), "Aggregation output should be Series or DataFrame."
-    
+    assert isinstance(aggregated, pd.Series) or isinstance(aggregated, pd.DataFrame), (
+        "Aggregation output should be Series or DataFrame."
+    )
+
     # Check that the aggregated index matches unique sample keys
-    assert set(aggregated.index) == set(sample_adata.obs["sample_id"].unique()), "Aggregated index does not match sample keys."
+    assert set(aggregated.index) == set(sample_adata.obs["sample_id"].unique()), (
+        "Aggregated index does not match sample keys."
+    )
+
 
 @pytest.mark.parametrize("invalid_aggregation", ["invalid_method", "average", "total"])
 def test_aggregate_by_group_invalid_aggregation(sample_adata, invalid_aggregation):
     with pytest.raises(ValueError, match=f"Unsupported aggregation method: {invalid_aggregation}"):
         aggregate_by_group(
             sample_adata,
-            sample_key="sample_id",
+            library_key="sample_id",
             node_feature_key="node_feature",
             aggregation=invalid_aggregation,
             key_added="aggregated_features",
         )
 
+
 @pytest.mark.parametrize("missing_key", ["missing_sample", "missing_feature"])
 def test_aggregate_by_group_missing_keys(sample_adata, missing_key):
-    sample_key = "sample_id" if missing_key != "missing_sample" else "non_existent_column"
+    library_key = "sample_id" if missing_key != "missing_sample" else "non_existent_column"
     node_feature_key = "node_feature" if missing_key != "missing_feature" else "non_existent_feature"
-    
-    with pytest.raises(ValueError, match=f"Column '.*' not found in adata.obs"):
+
+    with pytest.raises(ValueError, match="Column '.*' not found in adata.obs"):
         aggregate_by_group(
             sample_adata,
-            sample_key=sample_key,
+            library_key=library_key,
             node_feature_key=node_feature_key,
             aggregation="mean",
             key_added="aggregated_features",
         )
 
+
 def test_aggregate_by_group_none_aggregation(sample_adata):
     aggregate_by_group(
         sample_adata,
-        sample_key="sample_id",
+        library_key="sample_id",
         node_feature_key="node_feature",
         aggregation=None,
         key_added="aggregated_features",
     )
-    
+
     # Check that nothing is written to `adata.uns`
     assert "aggregated_features" not in sample_adata.uns, "No aggregation should be written when aggregation=None."
+
+
+def test_get_neighbor_counts(sample_adata):
+    """Functional test to see if the result matrix has the correct shape."""
+    cell_by_celltype_matrix = get_neighbor_counts(sample_adata)
+    assert cell_by_celltype_matrix.shape == (sample_adata.obs.shape[0], len(sample_adata.obs["cell_type"].unique()))
+    assert not np.isnan(cell_by_celltype_matrix).any(), f"Some values are NaN. Matrix:\n{cell_by_celltype_matrix}"

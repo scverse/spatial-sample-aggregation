@@ -1,7 +1,6 @@
 import numpy as np
 import pandas as pd
-from typing import Literal
-
+import scipy
 from anndata import AnnData
 from scipy.stats import entropy
 from squidpy._utils import NDArrayA
@@ -27,16 +26,18 @@ def _get_neighbor_counts(
     return output
 
 
-def get_neighbor_counts(adata, cluster_key="cell_type", connectivity_key="spatial_connectivities"):
+def get_neighbor_counts(
+    adata, cluster_key="cell_type", connectivity_key="spatial_connectivities", key_added="composition_matrix"
+):
     """Computes the number of each cell type in one-hop neighbors and stores it in adata.obsm['neighbor_counts']."""
     cats = adata.obs[cluster_key]
     mask = ~pd.isnull(cats).values
     cats = cats.loc[mask]
     if not len(cats):
         raise RuntimeError(f"After removing NaNs in `adata.obs[{cluster_key!r}]`, none remain.")
-   
+
     g = adata.obsp[connectivity_key]
-    import scipy
+
     if isinstance(g, scipy.sparse.coo_matrix):
         g = g.tocsr()
     g = g[mask, :][:, mask]
@@ -46,13 +47,16 @@ def get_neighbor_counts(adata, cluster_key="cell_type", connectivity_key="spatia
     dtype = int if pd.api.types.is_bool_dtype(g.dtype) or pd.api.types.is_integer_dtype(g.dtype) else float
     output: NDArrayA = np.zeros((len(cats), n_cats), dtype=dtype)
 
-    return _get_neighbor_counts(g_data, g.indices, g.indptr, cats.cat.codes.to_numpy(), output)
+    neighbor_counts = _get_neighbor_counts(g_data, g.indices, g.indptr, cats.cat.codes.to_numpy(), output)
+
+    # adding the neighbor counts to adata.obsm
+    # TODO: adapt to squidpy gr_utils _save_data(adata, attr="obsm", key=Key.obsm.feature(feature_column), data=node_features)
+    adata.obsm[key_added] = neighbor_counts
+
+    return neighbor_counts
 
 
-def compute_node_feature(adata: AnnData, 
-                         metric: str,
-                         connectivity_key: str, 
-                         **kwargs) -> NDArrayA:
+def compute_node_feature(adata: AnnData, metric: str, connectivity_key: str, **kwargs) -> NDArrayA:
     """
     Compute a node-level feature based on the selected metric.
 
@@ -93,6 +97,7 @@ def compute_shannon_diversity(
     adata: AnnData,
     connectivity_key: str = "spatial_connectivities",
     cluster_key: str = "cell_type",
+    key_added: str = "composition_matrix",
     **kwargs,
 ) -> NDArrayA:
     """
@@ -110,13 +115,15 @@ def compute_shannon_diversity(
     - np.ndarray: Shannon diversity values indexed by cell ID
     """
     # Compute neighbor counts directly
-    neighbor_counts = get_neighbor_counts(adata, cluster_key=cluster_key, connectivity_key=connectivity_key)
+    neighbor_counts = get_neighbor_counts(
+        adata, cluster_key=cluster_key, connectivity_key=connectivity_key, key_added=key_added
+    )
 
     # Normalize to probabilities
     probabilities = neighbor_counts / neighbor_counts.sum(axis=1, keepdims=True)
 
     # Compute Shannon diversity (entropy), ignoring zero probabilities
-    shannon_diversity = np.apply_along_axis(lambda p: entropy(p[p > 0], base=2), 1, probabilities)#.values)
+    shannon_diversity = np.apply_along_axis(lambda p: entropy(p[p > 0], base=2), 1, probabilities)
 
     return shannon_diversity.astype(np.float64)
 
