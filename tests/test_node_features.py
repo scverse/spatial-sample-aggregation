@@ -68,16 +68,17 @@ def adata():
     [
         ("degree"),
         ("mean_distance"),
+        ("shannon")
     ],
 )
-def test_compute_node_feature(adata, metric):
-    result = compute_node_feature(adata, metric, connectivity_key="spatial_connectivities")
+def test_compute_node_feature(sample_adata, metric):
+    result = compute_node_feature(sample_adata, metric, connectivity_key="spatial_connectivities")
 
     # Check type
     assert isinstance(result, np.ndarray), "Result should be a numpy ndarray."
 
     # Check shape
-    assert result.shape == (adata.n_obs,1), f"Expected shape {(adata.n_obs,1)}, but got {result.shape}."
+    assert result.shape == (sample_adata.n_obs,1), f"Expected shape {(sample_adata.n_obs,1)}, but got {result.shape}."
 
     # Check no NaNs in degree and mean_distance (shannon may have NaNs for isolated nodes)
     if metric in ["degree", "mean_distance"]:
@@ -85,14 +86,14 @@ def test_compute_node_feature(adata, metric):
 
 
 @pytest.mark.parametrize("invalid_metric", ["non_existent_metric", "random", "graph_density"])
-def test_compute_node_feature_invalid_metric(adata, invalid_metric):
+def test_compute_node_feature_invalid_metric(sample_adata, invalid_metric):
     with pytest.raises(ValueError, match=f"Unsupported metric: {invalid_metric}"):
-        compute_node_feature(adata, invalid_metric, connectivity_key="spatial_connectivities")
+        compute_node_feature(sample_adata, invalid_metric, connectivity_key="spatial_connectivities")
 
 @pytest.mark.parametrize("aggregation", ["mean", "median", "sum"])
-def test_aggregate_by_group(adata, aggregation):
+def test_aggregate_by_group(sample_adata, aggregation):
     aggregate_by_group(
-        adata,
+        sample_adata,
         sample_key="sample_id",
         node_feature_key="node_feature",
         aggregation=aggregation,
@@ -100,21 +101,21 @@ def test_aggregate_by_group(adata, aggregation):
     )
     
     # Check that the aggregated results are stored in `adata.uns`
-    assert "aggregated_features" in adata.uns, "Aggregated features not found in adata.uns."
+    assert "aggregated_features" in sample_adata.uns, "Aggregated features not found in adata.uns."
     
-    aggregated = adata.uns["aggregated_features"]
+    aggregated = sample_adata.uns["aggregated_features"]
     
     # Check that aggregation returns a DataFrame
     assert isinstance(aggregated, pd.Series) or isinstance(aggregated, pd.DataFrame), "Aggregation output should be Series or DataFrame."
     
     # Check that the aggregated index matches unique sample keys
-    assert set(aggregated.index) == set(adata.obs["sample_id"].unique()), "Aggregated index does not match sample keys."
+    assert set(aggregated.index) == set(sample_adata.obs["sample_id"].unique()), "Aggregated index does not match sample keys."
 
 @pytest.mark.parametrize("invalid_aggregation", ["invalid_method", "average", "total"])
-def test_aggregate_by_group_invalid_aggregation(adata, invalid_aggregation):
+def test_aggregate_by_group_invalid_aggregation(sample_adata, invalid_aggregation):
     with pytest.raises(ValueError, match=f"Unsupported aggregation method: {invalid_aggregation}"):
         aggregate_by_group(
-            adata,
+            sample_adata,
             sample_key="sample_id",
             node_feature_key="node_feature",
             aggregation=invalid_aggregation,
@@ -122,22 +123,22 @@ def test_aggregate_by_group_invalid_aggregation(adata, invalid_aggregation):
         )
 
 @pytest.mark.parametrize("missing_key", ["missing_sample", "missing_feature"])
-def test_aggregate_by_group_missing_keys(adata, missing_key):
+def test_aggregate_by_group_missing_keys(sample_adata, missing_key):
     sample_key = "sample_id" if missing_key != "missing_sample" else "non_existent_column"
     node_feature_key = "node_feature" if missing_key != "missing_feature" else "non_existent_feature"
     
     with pytest.raises(ValueError, match=f"Column '.*' not found in adata.obs"):
         aggregate_by_group(
-            adata,
+            sample_adata,
             sample_key=sample_key,
             node_feature_key=node_feature_key,
             aggregation="mean",
             key_added="aggregated_features",
         )
 
-def test_aggregate_by_group_none_aggregation(adata):
+def test_aggregate_by_group_none_aggregation(sample_adata):
     aggregate_by_group(
-        adata,
+        sample_adata,
         sample_key="sample_id",
         node_feature_key="node_feature",
         aggregation=None,
@@ -145,4 +146,4 @@ def test_aggregate_by_group_none_aggregation(adata):
     )
     
     # Check that nothing is written to `adata.uns`
-    assert "aggregated_features" not in adata.uns, "No aggregation should be written when aggregation=None."
+    assert "aggregated_features" not in sample_adata.uns, "No aggregation should be written when aggregation=None."

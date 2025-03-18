@@ -7,7 +7,7 @@ from .compute_node_features import aggregate_by_group, compute_node_feature
 
 
 def aggregate_by_edge(
-    adata: AnnData, sample_key: str, annotation_key: str, use_edge_weight: bool = False
+    adata: AnnData, library_key: str, annotation_key: str, use_edge_weight: bool = False
 ) -> pd.DataFrame:
     """
     Aggregate spatial neighborhood graph taking into account neighbors
@@ -21,7 +21,7 @@ def aggregate_by_edge(
 def aggregate_by_node(
     adata: AnnData,
     *,
-    sample_key: str,
+    library_key: str,
     cluster_key: str = None,  # TODO: annotation_key --> cluster_key to adapt to squidpy notation
     metric: str = "shannon",
     aggregation: str = "mean",  # TODO: new parameter --> check squidpy
@@ -35,10 +35,10 @@ def aggregate_by_node(
     Parameters
     ----------
     - adata: AnnData, input data
-    - sample_key: str, column in `adata.obs` to group by
+    - library_key: str, column in `adata.obs` to group by
     - cluster_key: Optional[str], cell type or similar annotation
     - metric: str, metric to compute ('shannon', 'degree', 'mean_distance')
-    - aggregation: str, aggregation method ('mean', 'median', 'sum', None)
+    - aggregate_by: str, aggregation method ('mean', 'median', 'sum', 'none')
     - connectivity_key: str, adjacency matrix key
     - key_added: Optional[str], key under which aggregated results are stored in `adata.uns`. Defaults to `metric`.
     - kwargs: Additional parameters passed to metric computation functions.
@@ -66,7 +66,7 @@ def aggregate_by_node(
     # Aggregate the computed metric at the sample level
     aggregate_by_group(
         adata,
-        sample_key=sample_key,
+        library_key=library_key,
         node_feature_key=key_added,
         cluster_key=cluster_key,
         aggregation=aggregation,
