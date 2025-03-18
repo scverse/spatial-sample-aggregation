@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 from anndata import AnnData
 from scipy.stats import entropy
+from squidpy._utils import NDArrayA
 
 
 def get_n_hop_neighbors(G, cell_idx, n_hops):
@@ -22,34 +23,43 @@ def get_n_hop_neighbors(G, cell_idx, n_hops):
     visited.remove(cell_idx)  # Exclude the original node
     return visited
 
+# TODO: this should go into squidpy/gr/_nhood.py
+def _get_neighbor_counts(
+    data: NDArrayA,
+    indices: NDArrayA,
+    indptr: NDArrayA,
+    cats: NDArrayA,  # Array mapping cell indices to their types
+    output: NDArrayA,  # Shape: (n_cells, n_celltypes)
+) -> NDArrayA:
+    indices_list = np.split(indices, indptr[1:-1])
+    data_list = np.split(data, indptr[1:-1])
+    for i in range(len(data_list)):  # Iterate over cells
+        cur_row = i  # Each row corresponds to a cell
+        cur_indices = indices_list[i]
+        cur_data = data_list[i]
+        for j, val in zip(cur_indices, cur_data):
+            cur_col = cats[j]  # Column corresponds to cell type
+            output[cur_row, cur_col] += val
+    return output
 
-def get_neighbor_counts(adata, n_hops=1, phenotype_col="celllineage", graph_key="generic_connectivities"):
+
+def get_neighbor_counts(adata, n_hops=1, cluster_key="celltype", connectivity_key="spatial_connectivities"):
     """Computes the number of each cell type in one-hop neighbors and stores it in adata.obsm['neighbor_counts']."""
-    # Get unique cell types
-    cell_types = adata.obs[phenotype_col].unique()
+    cats = adata.obs[cluster_key]
+    mask = ~pd.isnull(cats).values
+    cats = cats.loc[mask]
+    if not len(cats):
+        raise RuntimeError(f"After removing NaNs in `adata.obs[{cluster_key!r}]`, none remain.")
 
-    # Create an empty dataframe
-    neighbor_counts = pd.DataFrame(
-        np.zeros((adata.n_obs, len(cell_types)), dtype=int), index=adata.obs_names, columns=cell_types
-    )
+    g = adata.obsp[connectivity_key]
+    g = g[mask, :][:, mask]
+    n_cats = len(cats.cat.categories)
 
-    adjacency_matrix = adata.obsp[graph_key]
+    g_data = np.broadcast_to(1, shape=len(g.data))
+    dtype = int if pd.api.types.is_bool_dtype(g.dtype) or pd.api.types.is_integer_dtype(g.dtype) else float
+    output: NDArrayA = np.zeros((n_cats, n_cats), dtype=dtype)
 
-    # Convert to NetworkX graph
-    G = nx.from_scipy_sparse_array(adjacency_matrix)
-
-    # Iterate over each cell
-    for cell_idx in range(adata.n_obs):
-        neighbors = get_n_hop_neighbors(G, cell_idx, n_hops)
-
-        # Get their cell types
-        neighbor_types = adata.obs.iloc[list(neighbors)][phenotype_col]
-
-        # Count occurrences
-        neighbor_counts.iloc[cell_idx] = neighbor_types.value_counts().reindex(cell_types, fill_value=0)
-
-    # Store in AnnData object
-    return neighbor_counts
+    return _get_neighbor_counts(g_data, g.indices, g.indptr, cats.cat.codes.to_numpy(), output)
 
 
 def compute_node_feature(adata: AnnData, metric: str, connectivity_key: str, **kwargs) -> pd.Series:
