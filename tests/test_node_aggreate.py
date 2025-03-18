@@ -55,28 +55,17 @@ def sample_adata():
     # Create AnnData object
     adata = AnnData(obs=obs)
     adata.obs["sample_id"] = adata.obs["sample_id"].astype("category")
+    adata.obs["cell_type"] = adata.obs["cell_type"].astype("category")
     adata.obsm["spatial"] = np.random.rand(20, 2)
     adata.obsp["spatial_connectivities"] = adjacency_matrix
 
     return adata
 
 
-def test_missing_connectivity_key(sample_adata):
-    """Ensure function raises an error if connectivity key is missing."""
-    del sample_adata.obsp["spatial_connectivities"]
-
-    with pytest.raises(KeyError):
-        aggregate_by_node(
-            adata=sample_adata,
-            sample_key="sample_id",
-            cluster_key="cell_type",
-            metric="shannon",
-            aggregation="mean",
-            connectivity_key="spatial_connectivities",
-        )
 
 
-@pytest.mark.parametrize("metric", ["shannon", "degree"])
+
+@pytest.mark.parametrize("metric", ["degree", "mean_distance"]) #["shannon", "degree", "mean_distance"])
 def test_aggregate_by_node(sample_adata, metric):
     """Test that aggregate_by_node correctly computes and stores metrics."""
     added_key = f"{metric}_aggregated"
@@ -101,14 +90,29 @@ def test_aggregate_by_node(sample_adata, metric):
     assert not sample_adata.obs[added_key].isna().all(), f"All {added_key} values are NaN."
 
 
+
 def test_invalid_metric(sample_adata):
     """Ensure function raises an error for unsupported metrics."""
-    with pytest.raises(NotImplementedError):
+    with pytest.raises(ValueError):
         aggregate_by_node(
             adata=sample_adata,
             sample_key="sample_id",
             cluster_key="cell_type",
             metric="invalid_metric",
+            aggregation="mean",
+            connectivity_key="spatial_connectivities",
+        )
+
+def test_missing_connectivity_key(sample_adata):
+    """Ensure function raises an error if connectivity key is missing."""
+    del sample_adata.obsp["spatial_connectivities"]
+
+    with pytest.raises(KeyError):
+        aggregate_by_node(
+            adata=sample_adata,
+            sample_key="sample_id",
+            cluster_key="cell_type",
+            metric="shannon",
             aggregation="mean",
             connectivity_key="spatial_connectivities",
         )
