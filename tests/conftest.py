@@ -13,6 +13,7 @@ def sample_adata():
             "cell_id": [f"cell_{i}" for i in range(20)],
             "cell_type": ["A", "B", "C", "A", "B", "C", "A", "B", "C", "A"] * 2,  # Repeating for two samples
             "sample_id": ["S1"] * 10 + ["S2"] * 10,  # First 10 cells in S1, next 10 in S2
+            "node_feature": np.random.rand(20)
         }
     ).set_index("cell_id")
 

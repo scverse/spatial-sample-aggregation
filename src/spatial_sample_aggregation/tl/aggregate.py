@@ -26,7 +26,7 @@ def aggregate_by_node(
     metric: str = "shannon",
     aggregation: str = "mean",  # TODO: new parameter --> check squidpy
     connectivity_key: str = "spatial_connectivities",  # TODO: new parameter
-    added_key: str = None,
+    key_added: str = None,
     **kwargs,
 ) -> None:
     """
@@ -40,18 +40,18 @@ def aggregate_by_node(
     - metric: str, metric to compute ('shannon', 'degree', 'mean_distance')
     - aggregate_by: str, aggregation method ('mean', 'median', 'sum', 'none')
     - connectivity_key: str, adjacency matrix key
-    - added_key: Optional[str], key under which aggregated results are stored in `adata.uns`. Defaults to `metric`.
+    - key_added: Optional[str], key under which aggregated results are stored in `adata.uns`. Defaults to `metric`.
     - kwargs: Additional parameters passed to metric computation functions.
 
     Returns
     -------
-    - None (Results are stored in `adata.uns[added_key]`)
+    - None (Results are stored in `adata.obs[key_added]` and the agggregated features are added in `adata.uns[key_added]` if aggregation is not None)
     """
     # Determine where to store the results (default to metric name)
-    if added_key is None:
-        added_key = metric
+    if key_added is None:
+        key_added = metric
 
-    # connectivity_key = Key.obsp.spatial_conn(connectivity_key)
+    # TODO: adapt to squidpy: connectivity_key = Key.obsp.spatial_conn(connectivity_key)
     _assert_categorical_obs(adata, cluster_key)
     _assert_connectivity_key(adata, connectivity_key)
 
@@ -61,14 +61,14 @@ def aggregate_by_node(
     )
 
     # TODO: adapt to squidpy gr_utils _save_data(adata, attr="obs", key=Key.obs.feature(feature_column), data=node_features)
-    adata.obs[added_key] = node_features  # TODO: store in obs here or in the indivdiual functions
+    adata.obs[key_added] = node_features  # TODO: store in obs here or in the indivdiual functions
 
     # Aggregate the computed metric at the sample level
     aggregate_by_group(
         adata,
         library_key=library_key,
-        node_feature_key=added_key,
+        node_feature_key=key_added,
         cluster_key=cluster_key,
         aggregation=aggregation,
-        added_key=added_key,
+        key_added=key_added,
     )
