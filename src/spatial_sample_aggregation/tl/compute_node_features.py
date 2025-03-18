@@ -1,5 +1,7 @@
 import numpy as np
 import pandas as pd
+from typing import Literal
+
 from anndata import AnnData
 from scipy.stats import entropy
 from squidpy._utils import NDArrayA
@@ -32,19 +34,25 @@ def get_neighbor_counts(adata, cluster_key="cell_type", connectivity_key="spatia
     cats = cats.loc[mask]
     if not len(cats):
         raise RuntimeError(f"After removing NaNs in `adata.obs[{cluster_key!r}]`, none remain.")
-
+   
     g = adata.obsp[connectivity_key]
+    import scipy
+    if isinstance(g, scipy.sparse.coo_matrix):
+        g = g.tocsr()
     g = g[mask, :][:, mask]
     n_cats = len(cats.cat.categories)
 
     g_data = np.broadcast_to(1, shape=len(g.data))
     dtype = int if pd.api.types.is_bool_dtype(g.dtype) or pd.api.types.is_integer_dtype(g.dtype) else float
-    output: NDArrayA = np.zeros((n_cats, n_cats), dtype=dtype)
+    output: NDArrayA = np.zeros((len(cats), n_cats), dtype=dtype)
 
     return _get_neighbor_counts(g_data, g.indices, g.indptr, cats.cat.codes.to_numpy(), output)
 
 
-def compute_node_feature(adata: AnnData, metric: str, connectivity_key: str, **kwargs) -> NDArrayA:
+def compute_node_feature(adata: AnnData, 
+                         metric: str,
+                         connectivity_key: str, 
+                         **kwargs) -> NDArrayA:
     """
     Compute a node-level feature based on the selected metric.
 
@@ -66,7 +74,7 @@ def compute_node_feature(adata: AnnData, metric: str, connectivity_key: str, **k
     }
 
     if metric not in node_feature_functions:
-        raise ValueError(f"Unsupported metric: {metric}")
+        raise ValueError(f"Unsupported metric: {metric}. Choose from 'shannon', 'degree', or 'mean_distance'")
 
     return node_feature_functions[metric](adata, connectivity_key=connectivity_key, **kwargs).reshape(-1, 1)
 
@@ -108,9 +116,9 @@ def compute_shannon_diversity(
     probabilities = neighbor_counts / neighbor_counts.sum(axis=1, keepdims=True)
 
     # Compute Shannon diversity (entropy), ignoring zero probabilities
-    shannon_diversity = np.apply_along_axis(lambda p: entropy(p[p > 0], base=2), 1, probabilities.values)
+    shannon_diversity = np.apply_along_axis(lambda p: entropy(p[p > 0], base=2), 1, probabilities)#.values)
 
-    return np.ndarray(shannon_diversity)
+    return shannon_diversity.astype(np.float64)
 
 
 def aggregate_by_group(

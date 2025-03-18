@@ -56,6 +56,7 @@ def adata():
     # Create AnnData object
     adata = AnnData(obs=obs)
     adata.obs["sample_id"] = adata.obs["sample_id"].astype("category")
+    adata.obs["cell_type"] = adata.obs["cell_type"].astype("category")
     adata.obsm["spatial"] = np.random.rand(20, 2)
     adata.obsp["spatial_connectivities"] = adjacency_matrix
 
