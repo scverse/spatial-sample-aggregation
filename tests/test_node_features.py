@@ -67,6 +67,7 @@ def adata():
     [
         ("degree"),
         ("mean_distance"),
+        ("shannon")
     ],
 )
 def test_compute_node_feature(adata, metric):
