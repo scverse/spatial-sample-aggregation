@@ -123,7 +123,7 @@ def compute_shannon_diversity(
 
 def aggregate_by_group(
     adata: AnnData,
-    sample_key: str,
+    library_key: str,
     node_feature_key: str,
     cluster_key: str | None = None,
     aggregation: str = "mean",
@@ -135,7 +135,7 @@ def aggregate_by_group(
     Parameters
     ----------
     - adata: AnnData object
-    - sample_key: str, column in `adata.obs` indicating the sample group
+    - library_key: str, column in `adata.obs` indicating the sample group
     - node_feature_key: str, column in `adata.obs` containing the node-level feature to aggregate
     - annotation_key: Optional[str], column in `adata.obs` for additional grouping (e.g., cell type)
     - aggregation_function: str, aggregation method ('mean', 'median', 'sum', 'none')
@@ -148,8 +148,8 @@ def aggregate_by_group(
     if node_feature_key not in adata.obs.columns:
         raise ValueError(f"Column '{node_feature_key}' not found in adata.obs")
 
-    if sample_key not in adata.obs.columns:
-        raise ValueError(f"Column '{sample_key}' not found in adata.obs")
+    if library_key not in adata.obs.columns:
+        raise ValueError(f"Column '{library_key}' not found in adata.obs")
 
     if cluster_key and cluster_key not in adata.obs.columns:
         raise ValueError(f"Column '{cluster_key}' not found in adata.obs")
@@ -168,12 +168,12 @@ def aggregate_by_group(
     # Perform aggregation
     if cluster_key:
         aggregated = (
-            adata.obs.groupby([sample_key, cluster_key])[node_feature_key]
+            adata.obs.groupby([library_key, cluster_key])[node_feature_key]
             .agg(agg_methods[aggregation])
             .unstack()  # Pivot so that annotation_key values become columns
         )
     else:
-        aggregated = adata.obs.groupby(sample_key)[node_feature_key].agg(agg_methods[aggregation])
+        aggregated = adata.obs.groupby(library_key)[node_feature_key].agg(agg_methods[aggregation])
 
     # Store results in adata.uns
     adata.uns[added_key] = aggregated
