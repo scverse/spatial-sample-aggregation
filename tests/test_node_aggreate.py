@@ -3,9 +3,8 @@ import pandas as pd
 import pytest
 import scipy
 from anndata import AnnData
-
-from spatial_sample_aggregation.tl import aggregate_by_node
-
+from spatial_sample_aggregation.tl.aggregate import aggregate_by_node
+from spatial_sample_aggregation.tl.compute_node_features import get_neighbor_counts
 
 @pytest.fixture
 def sample_adata():
