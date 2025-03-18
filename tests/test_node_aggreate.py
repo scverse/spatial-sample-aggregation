@@ -4,7 +4,8 @@ import numpy as np
 import pandas as pd
 
 from anndata import AnnData
-from spatial_sample_aggregation.aggregate import aggregate_by_node
+from spatial_sample_aggregation.tl.aggregate import aggregate_by_node
+from spatial_sample_aggregation.tl.compute_node_features import get_neighbor_counts
 
 @pytest.fixture
 def sample_adata():
@@ -104,3 +105,9 @@ def test_invalid_metric(sample_adata):
             aggregation="mean",
             connectivity_key="spatial_connectivities"
         )
+        
+def test_get_neighbor_counts(sample_adata):
+    """Functional test to see if the result matrix has the correct shape."""
+    cell_by_celltype_matrix = get_neighbor_counts(sample_adata)
+    assert cell_by_celltype_matrix.shape == (sample_adata.obs.shape[0], len(sample_adata.obs["cell_type"].unique()))
+    assert not np.isnan(cell_by_celltype_matrix).any(), f"Some values are NaN. Matrix:\n{cell_by_celltype_matrix}"
