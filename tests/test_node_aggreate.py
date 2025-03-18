@@ -6,6 +6,7 @@ from anndata import AnnData
 from spatial_sample_aggregation.tl.aggregate import aggregate_by_node
 from spatial_sample_aggregation.tl.compute_node_features import get_neighbor_counts
 
+<<<<<<< HEAD
 @pytest.fixture
 def sample_adata():
     """Creates a small AnnData object for testing."""
@@ -60,6 +61,8 @@ def sample_adata():
     adata.obsp["spatial_connectivities"] = adjacency_matrix
 
     return adata
+=======
+>>>>>>> 692fefb383ebf5bce7b8b4287a7e7e1f29d8af04
 
 @pytest.mark.parametrize("metric", ["shannon", "degree", "mean_distance"])
 def test_aggregate_by_node(sample_adata, metric):
@@ -68,7 +71,7 @@ def test_aggregate_by_node(sample_adata, metric):
 
     aggregate_by_node(
         adata=sample_adata,
-        sample_key="sample_id",
+        library_key="sample_id",
         cluster_key="cell_type",
         metric=metric,
         aggregation="mean",
@@ -91,7 +94,7 @@ def test_invalid_metric(sample_adata):
     with pytest.raises(ValueError):
         aggregate_by_node(
             adata=sample_adata,
-            sample_key="sample_id",
+            library_key="sample_id",
             cluster_key="cell_type",
             metric="invalid_metric",
             aggregation="mean",
@@ -105,7 +108,7 @@ def test_missing_connectivity_key(sample_adata):
     with pytest.raises(KeyError):
         aggregate_by_node(
             adata=sample_adata,
-            sample_key="sample_id",
+            library_key="sample_id",
             cluster_key="cell_type",
             metric="shannon",
             aggregation="mean",
