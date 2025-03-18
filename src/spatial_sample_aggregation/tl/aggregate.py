@@ -38,7 +38,7 @@ def aggregate_by_node(
     - library_key: str, column in `adata.obs` to group by
     - cluster_key: Optional[str], cell type or similar annotation
     - metric: str, metric to compute ('shannon', 'degree', 'mean_distance')
-    - aggregate_by: str, aggregation method ('mean', 'median', 'sum', 'none')
+    - aggregation: str, aggregation method ('mean', 'median', 'sum', 'none')
     - connectivity_key: str, adjacency matrix key
     - key_added: Optional[str], key under which aggregated results are stored in `adata.uns`. Defaults to `metric`.
     - kwargs: Additional parameters passed to metric computation functions.
@@ -57,7 +57,7 @@ def aggregate_by_node(
 
     # Compute node-level feature
     node_features = compute_node_feature(
-        adata, metric, connectivity_key=connectivity_key, phenotype_col=cluster_key, **kwargs
+        adata, metric, connectivity_key=connectivity_key, cluster_key=cluster_key, library_key=library_key, **kwargs
     )
 
     # TODO: adapt to squidpy gr_utils _save_data(adata, attr="obs", key=Key.obs.feature(feature_column), data=node_features)

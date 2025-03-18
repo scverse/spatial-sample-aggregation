@@ -83,12 +83,12 @@ def compute_node_feature(adata: AnnData, metric: str, connectivity_key: str, **k
     return node_feature_functions[metric](adata, connectivity_key=connectivity_key, **kwargs).reshape(-1, 1)
 
 
-def calculate_degree(adata: AnnData, connectivity_key: str = "radius_cut_connectivities", **kwargs) -> NDArrayA:
+def calculate_degree(adata: AnnData, connectivity_key: str, **kwargs) -> NDArrayA:
     """Compute the degree of each node."""
     return adata.obsp[connectivity_key].sum(axis=1)
 
 
-def calculate_mean_distance(adata: AnnData, connectivity_key: str = "delaunay_distances", **kwargs) -> NDArrayA:
+def calculate_mean_distance(adata: AnnData, connectivity_key: str, **kwargs) -> NDArrayA:
     """Compute the mean distance to neighbors."""
     return np.nanmean(adata.obsp[connectivity_key].toarray(), axis=1)
 
