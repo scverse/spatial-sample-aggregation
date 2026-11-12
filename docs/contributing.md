@@ -11,7 +11,7 @@ If not, please refer to the [scanpy developer guide][].
 
 ## Installing dev dependencies
 
-In addition to the packages needed to _use_ this package,
+In addition to the packages needed to *use* this package,
 you need additional python packages to [run tests](#writing-tests) and [build the documentation](#docs-building).
 
 :::::{tabs}
@@ -22,7 +22,6 @@ The easiest way is to get familiar with [hatch environments][], with which these
 hatch test  # defined in the table [tool.hatch.envs.hatch-test] in pyproject.toml
 hatch run docs:build  # defined in the table [tool.hatch.envs.docs]
 ```
-
 ::::
 
 ::::{group-tab} Pip
@@ -34,7 +33,6 @@ python3 -m venv .venv
 source .venv/bin/activate
 pip install -e ".[dev,test,doc]"
 ```
-
 ::::
 :::::
 
@@ -55,7 +53,7 @@ in the root of the repository.
 Pre-commit will automatically download all dependencies when it is run for the first time.
 
 Alternatively, you can rely on the [pre-commit.ci][] service enabled on GitHub.
-If you didn't run `pre-commit` before pushing changes to GitHub it will automatically commit fixes to your pull request, or show an error message.
+If you didn’t run `pre-commit` before pushing changes to GitHub it will automatically commit fixes to your pull request, or show an error message.
 
 If pre-commit.ci added a commit on a branch you still have been working on locally, simply use
 
@@ -66,7 +64,7 @@ git pull --rebase
 to integrate the changes into yours.
 While the [pre-commit.ci][] is useful, we strongly encourage installing and running pre-commit locally first to understand its usage.
 
-Finally, most editors have an _autoformat on save_ feature.
+Finally, most editors have an *autoformat on save* feature.
 Consider enabling this option for [ruff][ruff-editors] and [biome][biome-editors].
 
 [pre-commit]: https://pre-commit.com/
@@ -93,22 +91,18 @@ Alternatively, you can run all tests from the command line by executing
 
 :::::{tabs}
 ::::{group-tab} Hatch
-
 ```bash
 hatch test  # test with the highest supported Python version
 # or
 hatch test --all  # test with all supported Python versions
 ```
-
 ::::
 
 ::::{group-tab} Pip
-
 ```bash
 source .venv/bin/activate
 pytest
 ```
-
 ::::
 :::::
 
@@ -121,7 +115,7 @@ in the root of the repository.
 Continuous integration will automatically run the tests on all pull requests and test
 against the minimum and maximum supported Python version.
 
-Additionally, there's a CI job that tests against pre-releases of all dependencies (if there are any).
+Additionally, there’s a CI job that tests against pre-releases of all dependencies (if there are any).
 The purpose of this check is to detect incompatibilities of new package versions early on and
 gives you time to fix the issue or reach out to the developers of the dependency before the package is released to a wider audience.
 
@@ -140,7 +134,7 @@ Please adhere to [Semantic Versioning][semver], in brief
 >
 > Additional labels for pre-release and build metadata are available as extensions to the MAJOR.MINOR.PATCH format.
 
-Once you are done, commit and push your changes and navigate to the "Releases" page of this project on GitHub.
+Once you are done, commit and push your changes and navigate to the “Releases” page of this project on GitHub.
 Specify `vX.X.X` as a tag name and create a release.
 For more information, see [managing GitHub releases][].
 This will automatically create a git tag and trigger a Github workflow that creates a release on [PyPI][].
@@ -193,22 +187,18 @@ please check out [this feature request][issue-render-notebooks] in the `cookiecu
 
 :::::{tabs}
 ::::{group-tab} Hatch
-
 ```bash
 hatch run docs:build
 hatch run docs:open
 ```
-
 ::::
 
 ::::{group-tab} Pip
-
 ```bash
 source .venv/bin/activate
 cd docs
 make html
 (xdg-)open _build/html/index.html
 ```
-
 ::::
 :::::
