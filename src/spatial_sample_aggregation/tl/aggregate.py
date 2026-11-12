@@ -1,6 +1,5 @@
 import pandas as pd
 from anndata import AnnData
-from squidpy._constants._pkg_constants import Key
 from squidpy.gr._utils import _assert_categorical_obs, _assert_connectivity_key
 
 from .compute_node_features import aggregate_by_group, compute_node_feature
