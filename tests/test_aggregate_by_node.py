@@ -65,7 +65,7 @@ def test_aggregate_by_node(sample_adata, metric):
         connectivity_key="spatial_connectivities",
         key_added=key_added,
     )
-    
+
     # Check if the computed metric is stored in `adata.obs`
     assert key_added in sample_adata.obs, f"{key_added} was not stored in obs."
 
