@@ -14,7 +14,6 @@ If not, please refer to the [scanpy developer guide][].
 In addition to the packages needed to *use* this package,
 you need additional python packages to [run tests](#writing-tests) and [build the documentation](#docs-building).
 
-<!-- panache-ignore-format-start -->
 :::::{tabs}
 ::::{group-tab} Hatch
 The easiest way is to get familiar with [hatch environments][], with which these tasks are simply:
@@ -23,7 +22,6 @@ The easiest way is to get familiar with [hatch environments][], with which these
 hatch test  # defined in the table [tool.hatch.envs.hatch-test] in pyproject.toml
 hatch run docs:build  # defined in the table [tool.hatch.envs.docs]
 ```
-
 ::::
 
 ::::{group-tab} Pip
@@ -35,10 +33,8 @@ python3 -m venv .venv
 source .venv/bin/activate
 pip install -e ".[dev,test,doc]"
 ```
-
 ::::
 :::::
-<!-- panache-ignore-format-end -->
 
 [hatch environments]: https://hatch.pypa.io/latest/tutorials/environment/basic-usage/
 
@@ -93,28 +89,22 @@ hatch env find hatch-test  # list all possible test environment paths
 
 Alternatively, you can run all tests from the command line by executing
 
-<!-- panache-ignore-format-start -->
 :::::{tabs}
 ::::{group-tab} Hatch
-
 ```bash
 hatch test  # test with the highest supported Python version
 # or
 hatch test --all  # test with all supported Python versions
 ```
-
 ::::
 
 ::::{group-tab} Pip
-
 ```bash
 source .venv/bin/activate
 pytest
 ```
-
 ::::
 :::::
-<!-- panache-ignore-format-end -->
 
 in the root of the repository.
 
@@ -195,26 +185,20 @@ please check out [this feature request][issue-render-notebooks] in the `cookiecu
 
 #### Building the docs locally
 
-<!-- panache-ignore-format-start -->
 :::::{tabs}
 ::::{group-tab} Hatch
-
 ```bash
 hatch run docs:build
 hatch run docs:open
 ```
-
 ::::
 
 ::::{group-tab} Pip
-
 ```bash
 source .venv/bin/activate
 cd docs
 make html
 (xdg-)open _build/html/index.html
 ```
-
 ::::
 :::::
-<!-- panache-ignore-format-end -->
