@@ -1,17 +1,13 @@
-import pytest
 import numpy as np
+import pytest
 
-from spatial_sample_aggregation.tl.aggregate import aggregate_by_node
 from spatial_sample_aggregation.tl import compute_node_feature, get_neighbor_counts
+from spatial_sample_aggregation.tl.aggregate import aggregate_by_node
 
 
 @pytest.mark.parametrize(
     "metric",
-    [
-        ("degree"),
-        ("mean_distance"),
-        ("shannon")
-    ],
+    [("degree"), ("mean_distance"), ("shannon")],
 )
 def test_compute_node_feature(sample_adata, metric):
     result = compute_node_feature(sample_adata, metric, connectivity_key="spatial_connectivities")
@@ -20,7 +16,7 @@ def test_compute_node_feature(sample_adata, metric):
     assert isinstance(result, np.ndarray), "Result should be a numpy ndarray."
 
     # Check shape
-    assert result.shape == (sample_adata.n_obs,1), f"Expected shape {(sample_adata.n_obs,1)}, but got {result.shape}."
+    assert result.shape == (sample_adata.n_obs, 1), f"Expected shape {(sample_adata.n_obs, 1)}, but got {result.shape}."
 
     # Check no NaNs in degree and mean_distance (shannon may have NaNs for isolated nodes)
     if metric in ["degree", "mean_distance"]:
@@ -65,7 +61,7 @@ def test_aggregate_by_node(sample_adata, metric):
         connectivity_key="spatial_connectivities",
         key_added=key_added,
     )
-    
+
     # Check if the computed metric is stored in `adata.obs`
     assert key_added in sample_adata.obs, f"{key_added} was not stored in obs."
 
@@ -87,6 +83,7 @@ def test_invalid_metric(sample_adata):
             aggregation="mean",
             connectivity_key="spatial_connectivities",
         )
+
 
 def test_missing_connectivity_key(sample_adata):
     """Ensure function raises an error if connectivity key is missing."""
